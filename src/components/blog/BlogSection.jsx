@@ -33,25 +33,51 @@ export const BlogSection = () => {
 
     // Charger les articles avec leurs likes et commentaires associés
     const fetchPosts = async () => {
-        const { data: postsData, error } = await supabase
+        // 1. Récupérer les posts avec l'auteur
+        const { data: postsData, error: postsError } = await supabase
             .from('posts')
             .select(`
         *,
-        profiles:author_id (username),
-        post_likes (id, user_id),
-        post_comments (
-          id,
-          content,
-          created_at,
-          user_id,
-          profiles:user_id (username)
-        )
+        profiles:author_id (username)
       `)
             .order('created_at', { ascending: false });
 
-        if (!error && postsData) {
-            setPosts(postsData);
+        if (postsError) {
+            console.error("Erreur posts:", postsError.message);
+            return;
         }
+
+        // 2. Pour chaque post, récupérer ses likes et ses commentaires proprement
+        const postsWithDetails = await Promise.all(
+            postsData.map(async (post) => {
+                // Récupérer les likes
+                const { data: likes } = await supabase
+                    .from('post_likes')
+                    .select('id, user_id')
+                    .eq('post_id', post.id);
+
+                // Récupérer les commentaires avec le profil de l'auteur du commentaire
+                const { data: comments } = await supabase
+                    .from('post_comments')
+                    .select(`
+            id,
+            content,
+            created_at,
+            user_id,
+            profiles:user_id (username)
+          `)
+                    .eq('post_id', post.id)
+                    .order('created_at', { ascending: true });
+
+                return {
+                    ...post,
+                    post_likes: likes || [],
+                    post_comments: comments || []
+                };
+            })
+        );
+
+        setPosts(postsWithDetails);
     };
 
     useEffect(() => {

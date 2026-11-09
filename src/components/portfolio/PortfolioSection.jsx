@@ -37,27 +37,48 @@ export const PortfolioSection = () => {
         checkAdmin();
     }, [user]);
 
-    // Charger les projets avec likes et commentaires
     const fetchProjects = async () => {
-        const { data, error } = await supabase
+        const { data: projectsData, error: projError } = await supabase
             .from('projects')
             .select(`
         *,
-        profiles:author_id (username),
-        project_likes (id, user_id),
-        project_comments (
-          id,
-          content,
-          created_at,
-          user_id,
-          profiles:user_id (username)
-        )
+        profiles:author_id (username)
       `)
             .order('created_at', { ascending: false });
 
-        if (!error && data) {
-            setProjects(data);
+        if (projError) {
+            console.error("Erreur projets:", projError.message);
+            return;
         }
+
+        const projectsWithDetails = await Promise.all(
+            projectsData.map(async (project) => {
+                const { data: likes } = await supabase
+                    .from('project_likes')
+                    .select('id, user_id')
+                    .eq('project_id', project.id);
+
+                const { data: comments } = await supabase
+                    .from('project_comments')
+                    .select(`
+            id,
+            content,
+            created_at,
+            user_id,
+            profiles:user_id (username)
+          `)
+                    .eq('project_id', project.id)
+                    .order('created_at', { ascending: true });
+
+                return {
+                    ...project,
+                    project_likes: likes || [],
+                    project_comments: comments || []
+                };
+            })
+        );
+
+        setProjects(projectsWithDetails);
     };
 
     useEffect(() => {
