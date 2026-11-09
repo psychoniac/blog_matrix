@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  extend: {
+    colors: {
+     matrix: {
+          bg: '#050505',
+          card: '#0A0F0D',
+          border: '#03A062',
+          neon: '#00FF66',
+          muted: '#2A4736',
+          text: '#C6F6D5',
+        }
+    },
+    fontFamily: {
+     mono: ['"JetBrains Mono"', '"Fira Code"', 'monospace'],
+    },
+    boxShadow: {
+        'neon': '0 0 15px rgba(0, 255, 102, 0.25)',
+        'neon-strong': '0 0 25px rgba(0, 255, 102, 0.5)',
+      }
+  },
+}
+
+@layer base {
+  body {
+    @apply bg-matrix-bg text-matrix-text font-mono selection:bg-matrix-neon selection:text-black;
+  }
+}
+
+/* Effet de balayage terminal subtil */
+.scanline {
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0),
+    rgba(255,255,255,0) 50%,
+    rgba(0, 0, 0, 0.3) 50%,
+    rgba(0, 0, 0, 0.3)
+  );
+  background-size: 100% 4px;
+}
